@@ -1,0 +1,73 @@
+@font-face {
+  font-family: "Inter";
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("../../public/fonts/inter/Inter-Regular.woff2?v=3.19")
+    format("woff2");
+}
+
+@font-face {
+  font-family: "Inter";
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url("../../public/fonts/inter/Inter-SemiBold.woff2?v=3.19")
+    format("woff2");
+}
+
+.main {
+  max-width: 600px;
+  margin: auto;
+  font-family: "Inter";
+}
+
+.logo {
+  display: block;
+  margin: 24px auto;
+  width: 100px;
+}
+
+.form {
+  margin: 1em;
+}
+
+.input {
+  width: 100%;
+  margin: 0;
+  padding: 10px 16px;
+  border-radius: 8px;
+  border-width: 1px;
+  border-style: solid;
+  border-color: rgba(216, 219, 227, 1);
+}
+
+.label {
+  display: block;
+  padding-left: 0.5em;
+  margin: 0.65em 0;
+}
+
+.prompt {
+  font-family: "Inter";
+  text-align: center;
+}
+
+.base {
+  font-family: "Inter";
+}
+
+.button {
+  display: block;
+  font-size: 1em;
+  margin: 1em auto;
+  padding: 12px 18px;
+  border-radius: 8px;
+  border-width: 1px;
+  border-style: solid;
+  cursor: pointer;
+  color: white;
+  background-color: rgba(43, 47, 51, 1);
+  border-color: rgba(63, 70, 75, 1);
+  font-family: "Inter";
+}
