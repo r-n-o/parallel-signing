@@ -33,7 +33,7 @@
 }
 
 .input {
-  width: 100%;
+  width: 95%;
   margin: 0;
   padding: 10px 16px;
   border-radius: 8px;
@@ -46,6 +46,11 @@
   display: block;
   padding-left: 0.5em;
   margin: 0.65em 0;
+}
+
+.radio {
+  display: inline-block;
+  margin-left: 1.5em;
 }
 
 .prompt {
@@ -70,4 +75,12 @@
   background-color: rgba(43, 47, 51, 1);
   border-color: rgba(63, 70, 75, 1);
   font-family: "Inter";
+}
+
+.results {
+  padding: 1em;
+  margin: 1em auto;
+  background-color: rgb(182, 252, 180);
+  border: 1px solid green;
+  border-radius: 6px;
 }

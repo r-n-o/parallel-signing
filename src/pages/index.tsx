@@ -1,7 +1,12 @@
 import Image from "next/image";
 import styles from "./index.module.css";
 import * as React from "react";
+import bs58check from 'bs58check'
+
 import { ApiKeyStamper } from "@turnkey/api-key-stamper";
+import { IframeStamper } from "@turnkey/iframe-stamper";
+import { hpkeEncrypt } from "@turnkey/crypto";
+import { uint8ArrayFromHexString } from "@turnkey/encoding";
 import { TurnkeyClient } from "@turnkey/http";
 
 type BenchmarkResult = {
@@ -56,6 +61,7 @@ export default function Home() {
     apiPrivateKey: "",
     signWith: "",
     numSignatures: 10,
+    stamperType: ""
   }, "parallel_signing_form_data")
 
   const [benchmarkResult, setBenchmarkResult] = React.useState<BenchmarkResult | null>(null)
@@ -73,11 +79,40 @@ export default function Home() {
   const handleSubmit = async (e: any) => {
     e.preventDefault();
 
-    const stamper = new ApiKeyStamper({
-      apiPublicKey: formData.apiPublicKey,
-      apiPrivateKey: formData.apiPrivateKey,
-    });
+    let stamper;
+    if (formData.stamperType == "API_KEY") {
+      stamper = new ApiKeyStamper({
+        apiPublicKey: formData.apiPublicKey,
+        apiPrivateKey: formData.apiPrivateKey,
+      });
+    } else {
+      // First, delete the iframe if already inserted
+      if (document.getElementById("turnkey-auth-iframe")) {
+        document.getElementById("turnkey-auth-iframe")!.remove();
+      }
+
+      stamper = new IframeStamper({
+        iframeUrl: "https://auth.turnkey.com",
+        iframeElementId: "turnkey-auth-iframe",
+        iframeContainer: document.getElementById("turnkey-auth-iframe-container"),
+      });
+
+      // Initialize the stamper (insert it in the DOM)
+      const iframePublicKey = await stamper.init();
     
+      // Inject the API key creds into it.
+      // To do this we create an auth bundle. Auth bundles are encrypted to the iframe public key and contain the raw API private key
+      const privateKeyBuf = uint8ArrayFromHexString(formData.apiPrivateKey);
+      const encryptedData = hpkeEncrypt({
+        plainTextBuf: privateKeyBuf,
+        targetKeyBuf: uint8ArrayFromHexString(iframePublicKey),
+      });
+      const bundle = bs58check.encode(encryptedData);
+
+      console.log("injecting bundle into iframe", bundle);
+      await stamper.injectCredentialBundle(bundle);
+    }
+
     const httpClient = new TurnkeyClient(
       { baseUrl: "https://api.turnkey.com" },
       stamper
@@ -85,13 +120,13 @@ export default function Home() {
 
     // Just a sanity check: do we have a correct API key stamper and org ID? If not, this should fail loudly.
     const whoamiResult = await httpClient.getWhoami({organizationId: formData.organizationId})
-    console.log("INFO: logged in as " + whoamiResult);
+    console.log("INFO: who am I? Logged in as", whoamiResult);
 
     const start = new Date().getTime();
-    
+
     let signingPromises = [];
     for (let i=0; i<formData.numSignatures; i++) {
-      signingPromises.push(httpClient.signRawPayload({
+      signingPromises.push(httpClient.stampSignRawPayload({
         type: "ACTIVITY_TYPE_SIGN_RAW_PAYLOAD_V2",
         timestampMs: new Date().getTime().toString(),
         organizationId: formData.organizationId,
@@ -185,6 +220,27 @@ export default function Home() {
                 onChange={handleChange}
               />
             </label>
+            <label className={styles.label}>Sign activities with</label>
+            <label className={styles.radio}>
+             apiKeyStamper
+              <input
+                name="stamperType"
+                type="radio"
+                value="API_KEY"
+                checked={formData.stamperType == "API_KEY"}
+                onChange={handleChange}
+              />
+            </label>
+            <label className={styles.radio}>
+              iframeStamper
+              <input
+                name="stamperType"
+                type="radio"
+                value="IFRAME"
+                checked={formData.stamperType == "IFRAME"}
+                onChange={handleChange}
+              />
+            </label>
             <input
               className={styles.button}
               type="submit"
@@ -192,9 +248,10 @@ export default function Home() {
             />
           </form>
           { benchmarkResult && (
-            <div>Result: {formData.numSignatures} signatures performed in {benchmarkResult.duration}ms</div>
+            <div className={styles.results}>Result: {formData.numSignatures} signatures performed in {benchmarkResult.duration}ms</div>
           )}
-        </div>      
+        </div>
+        <div id="turnkey-auth-iframe-container" style={{display: "none"}}></div>
     </main>
   );
 }
